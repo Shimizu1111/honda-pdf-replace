@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF ロゴ差し替えツール</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: #1a365d;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* ステップ表示 */
+        .steps {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .step {
+            flex: 1;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .step.active {
+            border-color: #1a365d;
+            background: #ebf4ff;
+        }
+        .step.done {
+            border-color: #38a169;
+            background: #f0fff4;
+        }
+        .step-num {
+            display: inline-block;
+            width: 24px; height: 24px;
+            line-height: 24px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+        .step.active .step-num { background: #1a365d; color: white; }
+        .step.done .step-num { background: #38a169; color: white; }
+
+        /* アップロードエリア */
+        .upload-area {
+            background: white;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover { border-color: #1a365d; background: #f7fafc; }
+        .upload-area.dragover { border-color: #1a365d; background: #ebf4ff; }
+        .upload-area input[type="file"] { display: none; }
+        .upload-icon { font-size: 48px; margin-bottom: 12px; color: #a0aec0; }
+        .upload-text { font-size: 16px; color: #718096; }
+
+        /* プレビューエリア */
+        .preview-section { display: none; }
+        .preview-section.visible { display: block; }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            background: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar button {
+            padding: 6px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+        .toolbar button:hover { background: #f7fafc; border-color: #a0aec0; }
+        .toolbar .page-info { font-size: 14px; color: #4a5568; min-width: 60px; text-align: center; }
+
+        .btn-primary {
+            background: #1a365d !important;
+            color: white !important;
+            border-color: #1a365d !important;
+            font-weight: 600;
+        }
+        .btn-primary:hover { background: #2a4a7f !important; }
+        .btn-primary:disabled {
+            background: #a0aec0 !important;
+            border-color: #a0aec0 !important;
+            cursor: not-allowed !important;
+        }
+
+        .btn-danger {
+            background: #e53e3e !important;
+            color: white !important;
+            border-color: #e53e3e !important;
+        }
+        .btn-danger:hover { background: #c53030 !important; }
+
+        /* キャンバスコンテナ */
+        .canvas-container {
+            position: relative;
+            overflow: auto;
+            background: #e2e8f0;
+            border-radius: 8px;
+            max-height: 70vh;
+            display: flex;
+            justify-content: center;
+        }
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .canvas-wrapper img {
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        /* 選択オーバーレイ */
+        .selection-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            cursor: crosshair;
+        }
+        .selection-rect {
+            position: absolute;
+            border: 2px dashed #e53e3e;
+            background: rgba(229, 62, 62, 0.1);
+            pointer-events: none;
+        }
+
+        /* 会社情報プレビュー */
+        .company-info {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        .company-info h3 { font-size: 14px; color: #718096; margin-bottom: 8px; }
+        .company-info .info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+        .company-info .logo-preview {
+            max-height: 40px;
+            margin-bottom: 8px;
+        }
+
+        /* フォントサイズ */
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .font-size-control input {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .font-size-control label {
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        /* ステータス */
+        .status-bar {
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-overlay.visible { display: flex; }
+        .loading-spinner {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 16px;
+        }
+        .loading-spinner::before {
+            content: "";
+            display: block;
+            width: 40px; height: 40px;
+            margin: 0 auto 12px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #1a365d;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .help-text {
+            font-size: 13px;
+            color: #718096;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PDF ロゴ差し替えツール</h1>
+    </div>
+
+    <div class="container">
+        <!-- ステップ -->
+        <div class="steps">
+            <div class="step active" id="step1">
+                <span class="step-num">1</span>PDFアップロード
+            </div>
+            <div class="step" id="step2">
+                <span class="step-num">2</span>範囲を選択
+            </div>
+            <div class="step" id="step3">
+                <span class="step-num">3</span>プレビュー確認
+            </div>
+            <div class="step" id="step4">
+                <span class="step-num">4</span>ダウンロード
+            </div>
+        </div>
+
+        <!-- アップロード -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">PDFファイルをドラッグ＆ドロップ、またはクリックして選択</div>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+
+        <!-- プレビュー -->
+        <div class="preview-section" id="previewSection">
+            <div class="toolbar">
+                <button onclick="prevPage()">◀</button>
+                <span class="page-info" id="pageInfo">1 / 1</span>
+                <button onclick="nextPage()">▶</button>
+                <button onclick="clearSelection()">選択クリア</button>
+                <div class="font-size-control">
+                    <label>フォントサイズ:</label>
+                    <input type="number" id="fontSize" value="8" min="5" max="20" step="0.5">
+                </div>
+                <div class="font-size-control">
+                    <label>ロゴサイズ:</label>
+                    <input type="range" id="logoSize" value="30" min="10" max="90" step="5" style="width:80px">
+                    <span id="logoSizeLabel">30%</span>
+                </div>
+                <div class="font-size-control">
+                    <label>ロゴ横オフセット:</label>
+                    <input type="number" id="logoOffsetX" value="0" min="-50" max="200" step="1" style="width:55px">
+                    <span style="font-size:12px;color:#718096">pt</span>
+                </div>
+                <div class="font-size-control">
+                    <label><input type="checkbox" id="showText" checked> テキスト表示</label>
+                </div>
+                <button class="btn-primary" id="previewBtn" onclick="previewReplace()" disabled>プレビュー</button>
+                <button class="btn-primary" id="downloadBtn" onclick="downloadEdited()" style="display:none;">ダウンロード</button>
+                <button id="backBtn" onclick="backToEdit()" style="display:none;">戻って再編集</button>
+                <span class="help-text" id="helpText">マウスドラッグで差し替え範囲を選択してください</span>
+            </div>
+
+            <div class="canvas-container" id="canvasContainer">
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <img id="previewImg" src="" alt="PDF preview">
+                    <div class="selection-overlay" id="selectionOverlay"></div>
+                </div>
+            </div>
+
+            <div class="company-info">
+                <h3>差し替え内容（固定）</h3>
+                <img src="/static/logo.png" alt="AR株式会社ロゴ" class="logo-preview">
+                <div class="info-row">{{ company.name }}</div>
+                <div class="info-row">{{ company.address }}</div>
+                <div class="info-row">{{ company.phone }}</div>
+                <div class="info-row">{{ company.email }}</div>
+            </div>
+
+            <div class="status-bar" id="statusBar">PDFを読み込みました</div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">処理中...</div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let currentPage = 0;
+        let pageCount = 0;
+        let zoom = 1.5;
+        let pageWidthPt = 0;
+        let pageHeightPt = 0;
+
+        // 選択状態
+        let isSelecting = false;
+        let selStart = null;
+        let selRect = null;  // {x, y, w, h} in canvas px
+        let selElement = null;
+
+        // DOM
+        const uploadArea = document.getElementById("uploadArea");
+        const fileInput = document.getElementById("fileInput");
+        const previewSection = document.getElementById("previewSection");
+        const previewImg = document.getElementById("previewImg");
+        const overlay = document.getElementById("selectionOverlay");
+        const previewBtn = document.getElementById("previewBtn");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const backBtn = document.getElementById("backBtn");
+        const statusBar = document.getElementById("statusBar");
+
+        // --- アップロード ---
+        uploadArea.addEventListener("click", () => fileInput.click());
+        uploadArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            uploadArea.classList.add("dragover");
+        });
+        uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("dragover"));
+        uploadArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove("dragover");
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files.length) handleFile(fileInput.files[0]);
+        });
+
+        async function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith(".pdf")) {
+                alert("PDFファイルを選択してください");
+                return;
+            }
+            showLoading();
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const resp = await fetch("/upload", { method: "POST", body: formData });
+                const data = await resp.json();
+                if (data.error) { alert(data.error); return; }
+
+                sessionId = data.session_id;
+                pageCount = data.page_count;
+                currentPage = 0;
+
+                setStep(2);
+                previewSection.classList.add("visible");
+                await loadPage();
+                statusBar.textContent = `${file.name} (${pageCount}ページ) を読み込みました`;
+            } catch (e) {
+                alert("アップロードに失敗しました: " + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- ページ操作 ---
+        async function loadPage() {
+            showLoading();
+            try {
+                const resp = await fetch(`/preview/${sessionId}/${currentPage}?zoom=${zoom}`);
+                pageWidthPt = parseFloat(resp.headers.get("X-Page-Width"));
+                pageHeightPt = parseFloat(resp.headers.get("X-Page-Height"));
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                previewImg.src = url;
+                previewImg.onload = () => {
+                    overlay.style.width = previewImg.naturalWidth + "px";
+                    overlay.style.height = previewImg.naturalHeight + "px";
+                    document.getElementById("canvasWrapper").style.width = previewImg.naturalWidth + "px";
+                    document.getElementById("canvasWrapper").style.height = previewImg.naturalHeight + "px";
+                };
+                document.getElementById("pageInfo").textContent = `${currentPage + 1} / ${pageCount}`;
+                clearSelection();
+            } catch (e) {
+                statusBar.textContent = "ページ読み込みエラー: " + e.message;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 0) { currentPage--; loadPage(); }
+        }
+        function nextPage() {
+            if (currentPage < pageCount - 1) { currentPage++; loadPage(); }
+        }
+
+        // --- 範囲選択 ---
+        overlay.addEventListener("mousedown", (e) => {
+            const rect = overlay.getBoundingClientRect();
+            selStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            isSelecting = true;
+
+            if (selElement) { selElement.remove(); selElement = null; }
+            selRect = null;
+            previewBtn.disabled = true;
+        });
+
+        overlay.addEventListener("mousemove", (e) => {
+            if (!isSelecting) return;
+            const rect = overlay.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
+
+            const x = Math.min(selStart.x, cx);
+            const y = Math.min(selStart.y, cy);
+            const w = Math.abs(cx - selStart.x);
+            const h = Math.abs(cy - selStart.y);
+
+            if (!selElement) {
+                selElement = document.createElement("div");
+                selElement.className = "selection-rect";
+                overlay.appendChild(selElement);
+            }
+            selElement.style.left = x + "px";
+            selElement.style.top = y + "px";
+            selElement.style.width = w + "px";
+            selElement.style.height = h + "px";
+        });
+
+        overlay.addEventListener("mouseup", (e) => {
+            if (!isSelecting) return;
+            isSelecting = false;
+            const rect = overlay.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
+
+            const x = Math.min(selStart.x, cx);
+            const y = Math.min(selStart.y, cy);
+            const w = Math.abs(cx - selStart.x);
+            const h = Math.abs(cy - selStart.y);
+
+            if (w < 10 || h < 10) {
+                clearSelection();
+                return;
+            }
+
+            selRect = { x, y, w, h };
+            previewBtn.disabled = false;
+
+            const pdfRect = canvasToPdf(selRect);
+            statusBar.textContent =
+                `選択範囲: x=${pdfRect.x0.toFixed(0)}, y=${pdfRect.y0.toFixed(0)}, ` +
+                `幅=${(pdfRect.x1 - pdfRect.x0).toFixed(0)}pt, 高さ=${(pdfRect.y1 - pdfRect.y0).toFixed(0)}pt`;
+        });
+
+        function clearSelection() {
+            if (selElement) { selElement.remove(); selElement = null; }
+            selRect = null;
+            previewBtn.disabled = true;
+            if (sessionId) setStep(2);
+        }
+
+        function canvasToPdf(sel) {
+            const imgW = previewImg.naturalWidth;
+            const imgH = previewImg.naturalHeight;
+            return {
+                x0: (sel.x / imgW) * pageWidthPt,
+                y0: (sel.y / imgH) * pageHeightPt,
+                x1: ((sel.x + sel.w) / imgW) * pageWidthPt,
+                y1: ((sel.y + sel.h) / imgH) * pageHeightPt,
+            };
+        }
+
+        // --- プレビュー・ダウンロード ---
+        function _buildReplacePayload() {
+            const pdfRect = canvasToPdf(selRect);
+            return {
+                session_id: sessionId,
+                page: currentPage,
+                rect: pdfRect,
+                font_size: parseFloat(document.getElementById("fontSize").value) || 8,
+                logo_size: parseInt(document.getElementById("logoSize").value) || 30,
+                logo_offset_x: parseFloat(document.getElementById("logoOffsetX").value) || 0,
+                show_text: document.getElementById("showText").checked,
+            };
+        }
+
+        async function previewReplace() {
+            if (!selRect) return;
+            showLoading();
+
+            try {
+                const resp = await fetch(`/replace-preview?zoom=${zoom}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(_buildReplacePayload()),
+                });
+
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    alert("エラー: " + (err.error || "不明なエラー"));
+                    return;
+                }
+
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                previewImg.src = url;
+                previewImg.onload = () => {
+                    overlay.style.width = previewImg.naturalWidth + "px";
+                    overlay.style.height = previewImg.naturalHeight + "px";
+                    document.getElementById("canvasWrapper").style.width = previewImg.naturalWidth + "px";
+                    document.getElementById("canvasWrapper").style.height = previewImg.naturalHeight + "px";
+                };
+
+                if (selElement) selElement.style.display = "none";
+                overlay.style.pointerEvents = "none";
+                previewBtn.style.display = "none";
+                downloadBtn.style.display = "";
+                backBtn.style.display = "";
+                setStep(3);
+                statusBar.textContent = "プレビューを表示中 — 問題なければダウンロードしてください";
+            } catch (e) {
+                alert("プレビューに失敗しました: " + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function downloadEdited() {
+            const a = document.createElement("a");
+            a.href = `/download/${sessionId}`;
+            a.download = `edited_${sessionId.substring(0, 8)}.pdf`;
+            a.click();
+            setStep(4);
+            statusBar.textContent = "ダウンロード完了！";
+        }
+
+        async function backToEdit() {
+            previewBtn.style.display = "";
+            downloadBtn.style.display = "none";
+            backBtn.style.display = "none";
+            overlay.style.pointerEvents = "";
+            clearSelection();
+            await loadPage();
+            setStep(2);
+            statusBar.textContent = "範囲を再選択してください";
+        }
+
+        // --- UI ヘルパー ---
+        function setStep(n) {
+            document.querySelectorAll(".step").forEach((el, i) => {
+                el.classList.remove("active", "done");
+                if (i + 1 < n) el.classList.add("done");
+                else if (i + 1 === n) el.classList.add("active");
+            });
+        }
+
+        document.getElementById("logoSize").addEventListener("input", (e) => {
+            document.getElementById("logoSizeLabel").textContent = e.target.value + "%";
+        });
+
+        function showLoading() { document.getElementById("loadingOverlay").classList.add("visible"); }
+        function hideLoading() { document.getElementById("loadingOverlay").classList.remove("visible"); }
+    </script>
+</body>
+</html>
