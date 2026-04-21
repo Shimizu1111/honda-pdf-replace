@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF ロゴ差し替えツール</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            background: #1a365d;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .steps {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .step {
+            flex: 1;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .step.active { border-color: #1a365d; background: #ebf4ff; }
+        .step.done { border-color: #38a169; background: #f0fff4; }
+        .step-num {
+            display: inline-block;
+            width: 24px; height: 24px;
+            line-height: 24px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 6px;
+        }
+        .step.active .step-num { background: #1a365d; color: white; }
+        .step.done .step-num { background: #38a169; color: white; }
+
+        .upload-area {
+            background: white;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+        .upload-area:hover { border-color: #1a365d; background: #f7fafc; }
+        .upload-area.dragover { border-color: #1a365d; background: #ebf4ff; }
+        .upload-area input[type="file"] { display: none; }
+        .upload-icon { font-size: 48px; margin-bottom: 12px; color: #a0aec0; }
+        .upload-text { font-size: 16px; color: #718096; }
+
+        .preview-section { display: none; }
+        .preview-section.visible { display: block; }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            background: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar button {
+            padding: 6px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.15s;
+        }
+        .toolbar button:hover { background: #f7fafc; border-color: #a0aec0; }
+        .toolbar .page-info { font-size: 14px; color: #4a5568; min-width: 60px; text-align: center; }
+
+        .btn-primary {
+            background: #1a365d !important;
+            color: white !important;
+            border-color: #1a365d !important;
+            font-weight: 600;
+        }
+        .btn-primary:hover { background: #2a4a7f !important; }
+        .btn-primary:disabled {
+            background: #a0aec0 !important;
+            border-color: #a0aec0 !important;
+            cursor: not-allowed !important;
+        }
+
+        .canvas-container {
+            position: relative;
+            overflow: auto;
+            background: #e2e8f0;
+            border-radius: 8px;
+            max-height: 70vh;
+            display: flex;
+            justify-content: center;
+        }
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .canvas-wrapper canvas {
+            display: block;
+        }
+        .selection-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            cursor: crosshair;
+        }
+        .selection-rect {
+            position: absolute;
+            border: 2px dashed #e53e3e;
+            background: rgba(229, 62, 62, 0.1);
+            pointer-events: none;
+        }
+
+        .company-info {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+        .company-info h3 { font-size: 14px; color: #718096; margin-bottom: 8px; }
+        .company-info .info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+        .company-info .logo-preview {
+            max-height: 40px;
+            margin-bottom: 8px;
+        }
+
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .font-size-control input {
+            width: 60px;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .font-size-control label {
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        .status-bar {
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .loading-overlay.visible { display: flex; }
+        .loading-spinner {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 16px;
+        }
+        .loading-spinner::before {
+            content: "";
+            display: block;
+            width: 40px; height: 40px;
+            margin: 0 auto 12px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #1a365d;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .help-text {
+            font-size: 13px;
+            color: #718096;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PDF ロゴ差し替えツール</h1>
+    </div>
+
+    <div class="container">
+        <div class="steps">
+            <div class="step active" id="step1">
+                <span class="step-num">1</span>PDFアップロード
+            </div>
+            <div class="step" id="step2">
+                <span class="step-num">2</span>範囲を選択
+            </div>
+            <div class="step" id="step3">
+                <span class="step-num">3</span>プレビュー確認
+            </div>
+            <div class="step" id="step4">
+                <span class="step-num">4</span>ダウンロード
+            </div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">PDFファイルをドラッグ＆ドロップ、またはクリックして選択</div>
+            <input type="file" id="fileInput" accept=".pdf">
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="toolbar">
+                <button onclick="prevPage()">◀</button>
+                <span class="page-info" id="pageInfo">1 / 1</span>
+                <button onclick="nextPage()">▶</button>
+                <button onclick="clearSelection()">選択クリア</button>
+                <div class="font-size-control">
+                    <label>フォントサイズ:</label>
+                    <input type="number" id="fontSize" value="8" min="5" max="20" step="0.5">
+                </div>
+                <div class="font-size-control">
+                    <label>ロゴサイズ:</label>
+                    <input type="range" id="logoSize" value="30" min="10" max="90" step="5" style="width:80px">
+                    <span id="logoSizeLabel">30%</span>
+                </div>
+                <div class="font-size-control">
+                    <label>ロゴ横オフセット:</label>
+                    <input type="number" id="logoOffsetX" value="0" min="-50" max="200" step="1" style="width:55px">
+                    <span style="font-size:12px;color:#718096">pt</span>
+                </div>
+                <div class="font-size-control">
+                    <label><input type="checkbox" id="showText" checked> テキスト表示</label>
+                </div>
+                <button class="btn-primary" id="previewBtn" onclick="previewReplace()" disabled>プレビュー</button>
+                <button class="btn-primary" id="downloadBtn" onclick="downloadEdited()" style="display:none;">ダウンロード</button>
+                <button id="backBtn" onclick="backToEdit()" style="display:none;">戻って再編集</button>
+                <span class="help-text" id="helpText">マウスドラッグで差し替え範囲を選択してください</span>
+            </div>
+
+            <div class="canvas-container" id="canvasContainer">
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <canvas id="previewCanvas"></canvas>
+                    <div class="selection-overlay" id="selectionOverlay"></div>
+                </div>
+            </div>
+
+            <div class="company-info">
+                <h3>差し替え内容（固定）</h3>
+                <img src="static/logo.png" alt="AR株式会社ロゴ" class="logo-preview">
+                <div class="info-row">AR株式会社</div>
+                <div class="info-row">〒106-0032 東京都港区六本木6丁目1-20 7F</div>
+                <div class="info-row">TEL: 03-6890-2022</div>
+                <div class="info-row">MAIL: m.asaka@asaka-real.com</div>
+            </div>
+
+            <div class="status-bar" id="statusBar">準備中...</div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">処理中...</div>
+    </div>
+
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
