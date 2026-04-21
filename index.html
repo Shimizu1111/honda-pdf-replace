@@ -151,6 +151,61 @@
             pointer-events: none;
         }
 
+        .sel-adjust {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        .sel-adjust-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .sel-adjust-grid {
+            display: grid;
+            grid-template-areas:
+                ".    up    ."
+                "left .     right"
+                ".    down  .";
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 6px;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+        .adj-btn {
+            padding: 10px 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background: #f7fafc;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .adj-btn:active { background: #ebf4ff; border-color: #1a365d; }
+        .adj-up { grid-area: up; }
+        .adj-down { grid-area: down; }
+        .adj-left { grid-area: left; }
+        .adj-right { grid-area: right; }
+        .sel-adjust-actions {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .adj-edge-btn {
+            padding: 10px 20px;
+            border: 1px solid #1a365d;
+            border-radius: 8px;
+            background: #ebf4ff;
+            color: #1a365d;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .adj-edge-btn:active { background: #1a365d; color: white; }
+
         .btn-primary {
             background: #1a365d !important;
             color: white !important;
@@ -337,6 +392,19 @@
                 <div class="canvas-wrapper" id="canvasWrapper">
                     <canvas id="previewCanvas"></canvas>
                     <div class="selection-overlay" id="selectionOverlay"></div>
+                </div>
+            </div>
+
+            <div class="sel-adjust" id="selAdjust" style="display:none;">
+                <div class="sel-adjust-title">選択範囲の微調整</div>
+                <div class="sel-adjust-grid">
+                    <button data-dir="up" class="adj-btn adj-up">▲ 上に広げる</button>
+                    <button data-dir="left" class="adj-btn adj-left">◀ 左に広げる</button>
+                    <button data-dir="right" class="adj-btn adj-right">右に広げる ▶</button>
+                    <button data-dir="down" class="adj-btn adj-down">▼ 下に広げる</button>
+                </div>
+                <div class="sel-adjust-actions">
+                    <button id="adjEdgeBtn" class="adj-edge-btn">端まで自動拡張</button>
                 </div>
             </div>
 

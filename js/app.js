@@ -104,6 +104,12 @@ function setupEventListeners() {
 
     // モード切替ボタン
     document.getElementById("modeBtn").addEventListener("click", toggleTouchMode);
+
+    // 微調整ボタン
+    document.querySelectorAll(".adj-btn").forEach((btn) => {
+        btn.addEventListener("click", () => adjustSelection(btn.dataset.dir));
+    });
+    document.getElementById("adjEdgeBtn").addEventListener("click", adjustToEdge);
 }
 
 // --- ファイルアップロード ---
@@ -219,6 +225,58 @@ function onMouseUp(e) {
 
     selRect = { x, y, w, h };
     previewBtn.disabled = false;
+    showSelAdjust();
+
+    const pdfRect = canvasToPdf(selRect);
+    statusBar.textContent =
+        `選択範囲: x=${pdfRect.x0.toFixed(0)}, y=${pdfRect.y0.toFixed(0)}, ` +
+        `幅=${(pdfRect.x1 - pdfRect.x0).toFixed(0)}pt, 高さ=${(pdfRect.y1 - pdfRect.y0).toFixed(0)}pt`;
+}
+
+// --- 選択範囲の微調整 ---
+const ADJUST_STEP = 5; // ピクセル単位
+
+function showSelAdjust() {
+    document.getElementById("selAdjust").style.display = "";
+}
+
+function hideSelAdjust() {
+    document.getElementById("selAdjust").style.display = "none";
+}
+
+function adjustSelection(dir) {
+    if (!selRect || !selElement) return;
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    switch (dir) {
+        case "up":    selRect.y = Math.max(0, selRect.y - ADJUST_STEP); selRect.h += ADJUST_STEP; break;
+        case "down":  selRect.h = Math.min(ch - selRect.y, selRect.h + ADJUST_STEP); break;
+        case "left":  selRect.x = Math.max(0, selRect.x - ADJUST_STEP); selRect.w += ADJUST_STEP; break;
+        case "right": selRect.w = Math.min(cw - selRect.x, selRect.w + ADJUST_STEP); break;
+    }
+
+    selElement.style.left = selRect.x + "px";
+    selElement.style.top = selRect.y + "px";
+    selElement.style.width = selRect.w + "px";
+    selElement.style.height = selRect.h + "px";
+
+    const pdfRect = canvasToPdf(selRect);
+    statusBar.textContent =
+        `選択範囲: x=${pdfRect.x0.toFixed(0)}, y=${pdfRect.y0.toFixed(0)}, ` +
+        `幅=${(pdfRect.x1 - pdfRect.x0).toFixed(0)}pt, 高さ=${(pdfRect.y1 - pdfRect.y0).toFixed(0)}pt`;
+}
+
+function adjustToEdge() {
+    if (!selRect || !selElement) return;
+    // 左右を端まで広げる（上下は維持）
+    selRect.x = 0;
+    selRect.w = canvas.width;
+
+    selElement.style.left = selRect.x + "px";
+    selElement.style.top = selRect.y + "px";
+    selElement.style.width = selRect.w + "px";
+    selElement.style.height = selRect.h + "px";
 
     const pdfRect = canvasToPdf(selRect);
     statusBar.textContent =
@@ -276,6 +334,7 @@ window.clearSelection = function () {
     if (selElement) { selElement.remove(); selElement = null; }
     selRect = null;
     previewBtn.disabled = true;
+    hideSelAdjust();
     if (originalPdfBytes) setStep(2);
 };
 
