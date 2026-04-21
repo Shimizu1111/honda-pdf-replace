@@ -18,6 +18,10 @@ let selStart = null;
 let selRect = null;
 let selElement = null;
 
+// タッチモード: "scroll" (スクロール/ズーム) or "select" (範囲選択)
+let touchMode = "scroll";
+const isTouchDevice = window.matchMedia("(max-width: 600px)").matches || "ontouchstart" in window;
+
 const COMPANY_INFO = {
     name: "AR株式会社",
     address: "〒106-0032 東京都港区六本木6丁目1-20 7F",
@@ -83,10 +87,15 @@ function setupEventListeners() {
     overlay.addEventListener("mousemove", onMouseMove);
     overlay.addEventListener("mouseup", onMouseUp);
 
-    // 選択（タッチ）
+    // 選択（タッチ） - 選択モード時のみ動作
     overlay.addEventListener("touchstart", onTouchStart, { passive: false });
     overlay.addEventListener("touchmove", onTouchMove, { passive: false });
     overlay.addEventListener("touchend", onTouchEnd, { passive: false });
+
+    // タッチデバイスではデフォルトでスクロールモード（選択オーバーレイ無効化）
+    if (isTouchDevice) {
+        overlay.classList.add("disabled");
+    }
 
     // ロゴサイズスライダー
     document.getElementById("logoSize").addEventListener("input", (e) => {
@@ -214,6 +223,24 @@ function onMouseUp(e) {
         `幅=${(pdfRect.x1 - pdfRect.x0).toFixed(0)}pt, 高さ=${(pdfRect.y1 - pdfRect.y0).toFixed(0)}pt`;
 }
 
+// --- タッチモード切替 ---
+window.toggleTouchMode = function () {
+    const btn = document.getElementById("modeBtn");
+    if (touchMode === "scroll") {
+        touchMode = "select";
+        overlay.classList.remove("disabled");
+        btn.className = "mode-select";
+        btn.textContent = "🔍 スクロールモードに切替";
+        statusBar.textContent = "選択モード: 指でドラッグして範囲を選択してください";
+    } else {
+        touchMode = "scroll";
+        overlay.classList.add("disabled");
+        btn.className = "mode-scroll";
+        btn.textContent = "📍 選択モードに切替";
+        statusBar.textContent = "スクロールモード: スクロール・ピンチズームで位置を調整してください";
+    }
+};
+
 // --- タッチイベント ---
 function getTouchPos(e) {
     const touch = e.touches[0] || e.changedTouches[0];
@@ -222,18 +249,21 @@ function getTouchPos(e) {
 }
 
 function onTouchStart(e) {
+    if (touchMode !== "select") return;
     e.preventDefault();
     const pos = getTouchPos(e);
     onMouseDown({ clientX: pos.clientX, clientY: pos.clientY, preventDefault: () => {} });
 }
 
 function onTouchMove(e) {
+    if (touchMode !== "select") return;
     e.preventDefault();
     const pos = getTouchPos(e);
     onMouseMove({ clientX: pos.clientX, clientY: pos.clientY });
 }
 
 function onTouchEnd(e) {
+    if (touchMode !== "select") return;
     e.preventDefault();
     const pos = getTouchPos(e);
     onMouseUp({ clientX: pos.clientX, clientY: pos.clientY });

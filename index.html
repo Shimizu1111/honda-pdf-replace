@@ -118,6 +118,39 @@
             .help-text { width: 100%; margin-left: 0; text-align: center; }
         }
 
+        .mode-toggle {
+            display: none;
+            position: sticky;
+            bottom: 16px;
+            z-index: 100;
+            text-align: center;
+            margin-top: 12px;
+        }
+        @media (max-width: 600px) {
+            .mode-toggle { display: block; }
+        }
+        .mode-toggle button {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        .mode-toggle button.mode-scroll {
+            background: #4a90d9;
+            color: white;
+        }
+        .mode-toggle button.mode-select {
+            background: #e53e3e;
+            color: white;
+        }
+        .selection-overlay.disabled {
+            pointer-events: none;
+        }
+
         .btn-primary {
             background: #1a365d !important;
             color: white !important;
@@ -305,6 +338,10 @@
                     <canvas id="previewCanvas"></canvas>
                     <div class="selection-overlay" id="selectionOverlay"></div>
                 </div>
+            </div>
+
+            <div class="mode-toggle" id="modeToggle">
+                <button class="mode-scroll" id="modeBtn" onclick="toggleTouchMode()">📍 選択モードに切替</button>
             </div>
 
             <div class="company-info">
