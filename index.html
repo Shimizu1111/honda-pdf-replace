@@ -30,6 +30,7 @@
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
+            overflow-x: auto;
         }
         .step {
             flex: 1;
@@ -40,6 +41,15 @@
             text-align: center;
             font-size: 14px;
             transition: all 0.2s;
+            min-width: 0;
+        }
+        @media (max-width: 600px) {
+            .step { padding: 8px 6px; font-size: 11px; }
+            .step .step-label { display: none; }
+            .step .step-label-short { display: inline; }
+        }
+        @media (min-width: 601px) {
+            .step .step-label-short { display: none; }
         }
         .step.active { border-color: #1a365d; background: #ebf4ff; }
         .step.done { border-color: #38a169; background: #f0fff4; }
@@ -66,6 +76,11 @@
             transition: all 0.2s;
             margin-bottom: 20px;
         }
+        @media (max-width: 600px) {
+            .upload-area { padding: 24px 16px; }
+            .upload-icon { font-size: 36px !important; }
+            .upload-text { font-size: 14px !important; }
+        }
         .upload-area:hover { border-color: #1a365d; background: #f7fafc; }
         .upload-area.dragover { border-color: #1a365d; background: #ebf4ff; }
         .upload-area input[type="file"] { display: none; }
@@ -78,7 +93,7 @@
         .toolbar {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             margin-bottom: 12px;
             background: white;
             padding: 10px 16px;
@@ -96,6 +111,12 @@
         }
         .toolbar button:hover { background: #f7fafc; border-color: #a0aec0; }
         .toolbar .page-info { font-size: 14px; color: #4a5568; min-width: 60px; text-align: center; }
+        @media (max-width: 600px) {
+            .toolbar { gap: 6px; padding: 8px 10px; }
+            .toolbar button { padding: 8px 12px; font-size: 13px; }
+            .font-size-control { width: 100%; }
+            .help-text { width: 100%; margin-left: 0; text-align: center; }
+        }
 
         .btn-primary {
             background: #1a365d !important;
@@ -118,6 +139,7 @@
             max-height: 70vh;
             display: flex;
             justify-content: center;
+            -webkit-overflow-scrolling: touch;
         }
         .canvas-wrapper {
             position: relative;
@@ -230,16 +252,16 @@
     <div class="container">
         <div class="steps">
             <div class="step active" id="step1">
-                <span class="step-num">1</span>PDFアップロード
+                <span class="step-num">1</span><span class="step-label">PDFアップロード</span><span class="step-label-short">PDF</span>
             </div>
             <div class="step" id="step2">
-                <span class="step-num">2</span>範囲を選択
+                <span class="step-num">2</span><span class="step-label">範囲を選択</span><span class="step-label-short">選択</span>
             </div>
             <div class="step" id="step3">
-                <span class="step-num">3</span>プレビュー確認
+                <span class="step-num">3</span><span class="step-label">プレビュー確認</span><span class="step-label-short">確認</span>
             </div>
             <div class="step" id="step4">
-                <span class="step-num">4</span>ダウンロード
+                <span class="step-num">4</span><span class="step-label">ダウンロード</span><span class="step-label-short">DL</span>
             </div>
         </div>
 
@@ -275,7 +297,7 @@
                 <button class="btn-primary" id="previewBtn" onclick="previewReplace()" disabled>プレビュー</button>
                 <button class="btn-primary" id="downloadBtn" onclick="downloadEdited()" style="display:none;">ダウンロード</button>
                 <button id="backBtn" onclick="backToEdit()" style="display:none;">戻って再編集</button>
-                <span class="help-text" id="helpText">マウスドラッグで差し替え範囲を選択してください</span>
+                <span class="help-text" id="helpText">ドラッグで差し替え範囲を選択してください</span>
             </div>
 
             <div class="canvas-container" id="canvasContainer">

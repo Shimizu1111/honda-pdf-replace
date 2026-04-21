@@ -10,7 +10,7 @@ let currentPage = 0;
 let pageCount = 0;
 let pageWidthPt = 0;
 let pageHeightPt = 0;
-let zoom = 1.5;
+let zoom = window.innerWidth <= 600 ? 0.8 : 1.5;
 
 // 選択
 let isSelecting = false;
@@ -78,10 +78,15 @@ function setupEventListeners() {
         if (fileInput.files.length) handleFile(fileInput.files[0]);
     });
 
-    // 選択
+    // 選択（マウス）
     overlay.addEventListener("mousedown", onMouseDown);
     overlay.addEventListener("mousemove", onMouseMove);
     overlay.addEventListener("mouseup", onMouseUp);
+
+    // 選択（タッチ）
+    overlay.addEventListener("touchstart", onTouchStart, { passive: false });
+    overlay.addEventListener("touchmove", onTouchMove, { passive: false });
+    overlay.addEventListener("touchend", onTouchEnd, { passive: false });
 
     // ロゴサイズスライダー
     document.getElementById("logoSize").addEventListener("input", (e) => {
@@ -207,6 +212,31 @@ function onMouseUp(e) {
     statusBar.textContent =
         `選択範囲: x=${pdfRect.x0.toFixed(0)}, y=${pdfRect.y0.toFixed(0)}, ` +
         `幅=${(pdfRect.x1 - pdfRect.x0).toFixed(0)}pt, 高さ=${(pdfRect.y1 - pdfRect.y0).toFixed(0)}pt`;
+}
+
+// --- タッチイベント ---
+function getTouchPos(e) {
+    const touch = e.touches[0] || e.changedTouches[0];
+    const rect = overlay.getBoundingClientRect();
+    return { clientX: touch.clientX, clientY: touch.clientY, x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+}
+
+function onTouchStart(e) {
+    e.preventDefault();
+    const pos = getTouchPos(e);
+    onMouseDown({ clientX: pos.clientX, clientY: pos.clientY, preventDefault: () => {} });
+}
+
+function onTouchMove(e) {
+    e.preventDefault();
+    const pos = getTouchPos(e);
+    onMouseMove({ clientX: pos.clientX, clientY: pos.clientY });
+}
+
+function onTouchEnd(e) {
+    e.preventDefault();
+    const pos = getTouchPos(e);
+    onMouseUp({ clientX: pos.clientX, clientY: pos.clientY });
 }
 
 window.clearSelection = function () {
