@@ -101,6 +101,9 @@ function setupEventListeners() {
     document.getElementById("logoSize").addEventListener("input", (e) => {
         document.getElementById("logoSizeLabel").textContent = e.target.value + "%";
     });
+
+    // モード切替ボタン
+    document.getElementById("modeBtn").addEventListener("click", toggleTouchMode);
 }
 
 // --- ファイルアップロード ---
@@ -224,7 +227,7 @@ function onMouseUp(e) {
 }
 
 // --- タッチモード切替 ---
-window.toggleTouchMode = function () {
+function toggleTouchMode() {
     const btn = document.getElementById("modeBtn");
     if (touchMode === "scroll") {
         touchMode = "select";
@@ -239,7 +242,7 @@ window.toggleTouchMode = function () {
         btn.textContent = "📍 選択モードに切替";
         statusBar.textContent = "スクロールモード: スクロール・ピンチズームで位置を調整してください";
     }
-};
+}
 
 // --- タッチイベント ---
 function getTouchPos(e) {
