@@ -88,8 +88,8 @@ export async function editPdf(originalBytes, options) {
         const totalTextH = lines.length * lineHeight - (lineHeight - fontSize);
         const textTopY = y0 + (h + totalTextH) / 2 - fontSize;
 
-        const nameColor = rgb(0x1a / 255, 0x36 / 255, 0x5d / 255); // アイコンと同じ紺色
-        const nameFontSize = fontSize * 1.4;
+        const nameColor = rgb(0x16 / 255, 0x4b / 255, 0x7d / 255); // アイコンと同じ紺青色
+        const nameFontSize = fontSize * 2;
 
         for (let i = 0; i < lines.length; i++) {
             const lineY = textTopY - i * lineHeight;
