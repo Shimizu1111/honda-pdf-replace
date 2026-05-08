@@ -83,8 +83,8 @@ function setupEventListeners() {
 
     // 選択（マウス）
     overlay.addEventListener("mousedown", onMouseDown);
-    overlay.addEventListener("mousemove", onMouseMove);
-    overlay.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
 
     // 選択（タッチ） - 選択モード時のみ動作
     overlay.addEventListener("touchstart", onTouchStart, { passive: false });
