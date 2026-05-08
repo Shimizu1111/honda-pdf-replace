@@ -31,7 +31,7 @@ export async function editPdf(originalBytes, options) {
     const h = y1 - y0;
 
     const margin = 2;
-    const gap = 3;
+    const gap = fontSize * 2;
     const logoRatio = Math.max(0.1, Math.min(0.9, logoSizePercent / 100));
 
     // 1. 白塗り
