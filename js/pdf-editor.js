@@ -42,25 +42,38 @@ export async function editPdf(originalBytes, options) {
         borderWidth: 0,
     });
 
-    // 2. ロゴ挿入
-    let logoRightEdge = x0 + margin + logoOffsetX; // テキスト開始位置のフォールバック
+    // テキスト情報を先に計算（ロゴの高さをテキスト全体の高さに合わせるため）
+    const nameColor = rgb(0x16 / 255, 0x4b / 255, 0x7d / 255);
+    const nameFontSize = fontSize * 2;
+    const lineHeight = fontSize * 1.5;
+    const nameLineHeight = nameFontSize * 1.3;
+    const lines = [
+        companyInfo.name,
+        companyInfo.address,
+        companyInfo.phone,
+        companyInfo.email,
+    ];
+    // テキストブロック全体の高さ: 会社名行 + 残り行
+    const totalTextH = nameLineHeight + (lines.length - 1) * lineHeight;
+
+    // 2. ロゴ挿入（高さをテキストブロックに合わせる）
+    let logoRightEdge = x0 + margin + logoOffsetX;
     if (logoBytes) {
         const logoImage = await pdfDoc.embedPng(logoBytes);
         const logoDims = logoImage.scale(1);
 
         const logoAreaX = x0 + margin + logoOffsetX;
-        const logoAreaY = y0 + margin;
         const logoAreaW = w * logoRatio - margin;
-        const logoAreaH = h - margin * 2;
 
-        // アスペクト比を維持してフィット
-        const scaleF = Math.min(logoAreaW / logoDims.width, logoAreaH / logoDims.height);
+        // ロゴの高さをテキストブロックの高さに合わせる
+        const targetH = totalTextH;
+        const scaleF = Math.min(logoAreaW / logoDims.width, targetH / logoDims.height);
         const drawW = logoDims.width * scaleF;
         const drawH = logoDims.height * scaleF;
 
-        // ロゴを左寄せ・縦中央
+        // 選択範囲の縦中央に配置
         const drawX = logoAreaX;
-        const drawY = logoAreaY + (logoAreaH - drawH) / 2;
+        const drawY = y0 + (h - drawH) / 2;
 
         page.drawImage(logoImage, {
             x: drawX, y: drawY, width: drawW, height: drawH,
@@ -75,33 +88,27 @@ export async function editPdf(originalBytes, options) {
 
         const textX = logoRightEdge + gap;
         const textAreaW = x1 - margin - textX;
-        const lineHeight = fontSize * 1.5;
 
-        const lines = [
-            companyInfo.name,
-            companyInfo.address,
-            companyInfo.phone,
-            companyInfo.email,
-        ];
+        // テキストブロックを縦中央に配置
+        const blockTopY = y0 + (h + totalTextH) / 2;
 
-        // テキストをロゴと縦中央揃えで描画
-        const totalTextH = lines.length * lineHeight - (lineHeight - fontSize);
-        const textTopY = y0 + (h + totalTextH) / 2 - fontSize;
+        // 会社名（1行目）
+        const nameY = blockTopY - nameFontSize;
+        page.drawText(lines[0], {
+            x: textX, y: nameY,
+            size: nameFontSize, font, color: nameColor,
+            maxWidth: textAreaW,
+        });
 
-        const nameColor = rgb(0x16 / 255, 0x4b / 255, 0x7d / 255); // アイコンと同じ紺青色
-        const nameFontSize = fontSize * 2;
+        // 残りの行（住所・TEL・MAIL）
+        const restStartY = nameY - nameLineHeight + nameFontSize - fontSize;
+        for (let i = 1; i < lines.length; i++) {
+            const lineY = restStartY - (i - 1) * lineHeight;
+            if (lineY < y0 + margin) break;
 
-        for (let i = 0; i < lines.length; i++) {
-            const lineY = textTopY - i * lineHeight;
-            if (lineY < y0 + margin) break; // エリア外なら停止
-
-            const isName = i === 0; // 最初の行が会社名
             page.drawText(lines[i], {
-                x: textX,
-                y: lineY,
-                size: isName ? nameFontSize : fontSize,
-                font: font,
-                color: isName ? nameColor : rgb(0, 0, 0),
+                x: textX, y: lineY,
+                size: fontSize, font, color: rgb(0, 0, 0),
                 maxWidth: textAreaW,
             });
         }
