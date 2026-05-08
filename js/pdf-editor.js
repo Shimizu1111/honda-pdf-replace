@@ -88,16 +88,20 @@ export async function editPdf(originalBytes, options) {
         const totalTextH = lines.length * lineHeight - (lineHeight - fontSize);
         const textTopY = y0 + (h + totalTextH) / 2 - fontSize;
 
+        const nameColor = rgb(0x1a / 255, 0x36 / 255, 0x5d / 255); // アイコンと同じ紺色
+        const nameFontSize = fontSize * 1.4;
+
         for (let i = 0; i < lines.length; i++) {
             const lineY = textTopY - i * lineHeight;
             if (lineY < y0 + margin) break; // エリア外なら停止
 
+            const isName = i === 0; // 最初の行が会社名
             page.drawText(lines[i], {
                 x: textX,
                 y: lineY,
-                size: fontSize,
+                size: isName ? nameFontSize : fontSize,
                 font: font,
-                color: rgb(0, 0, 0),
+                color: isName ? nameColor : rgb(0, 0, 0),
                 maxWidth: textAreaW,
             });
         }
