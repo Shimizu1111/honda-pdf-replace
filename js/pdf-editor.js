@@ -42,19 +42,33 @@ export async function editPdf(originalBytes, options) {
         borderWidth: 0,
     });
 
-    // テキスト情報を先に計算（ロゴの高さをテキスト全体の高さに合わせるため）
+    // テキスト情報を計算し、枠に収まるよう自動縮小
     const nameColor = rgb(0x16 / 255, 0x4b / 255, 0x7d / 255);
-    const nameFontSize = fontSize * 2;
-    const lineHeight = fontSize * 1.5;
-    const nameLineHeight = nameFontSize * 1.3;
     const lines = [
         companyInfo.name,
         companyInfo.address,
         companyInfo.phone,
         companyInfo.email,
     ];
-    // テキストブロック全体の高さ: 会社名行 + 残り行
-    const totalTextH = nameLineHeight + (lines.length - 1) * lineHeight;
+
+    // 基準サイズでテキストブロック高さを算出
+    let fs = fontSize;
+    let namefs = fs * 2;
+    let lh = fs * 1.5;
+    let nameLh = namefs * 1.3;
+    let totalTextH = nameLh + (lines.length - 1) * lh;
+
+    // 枠の高さに収まらない場合、全体を縮小
+    const availH = h - margin * 2;
+    if (totalTextH > availH) {
+        const scale = availH / totalTextH;
+        fs = fontSize * scale;
+        namefs = fs * 2;
+        lh = fs * 1.5;
+        nameLh = namefs * 1.3;
+        totalTextH = nameLh + (lines.length - 1) * lh;
+    }
+    const scaledGap = fs * 2;
 
     // 2. ロゴ挿入（高さをテキストブロックに合わせる）
     let logoRightEdge = x0 + margin + logoOffsetX;
@@ -65,13 +79,11 @@ export async function editPdf(originalBytes, options) {
         const logoAreaX = x0 + margin + logoOffsetX;
         const logoAreaW = w * logoRatio - margin;
 
-        // ロゴの高さをテキストブロックの高さに合わせる
         const targetH = totalTextH;
         const scaleF = Math.min(logoAreaW / logoDims.width, targetH / logoDims.height);
         const drawW = logoDims.width * scaleF;
         const drawH = logoDims.height * scaleF;
 
-        // 選択範囲の縦中央に配置
         const drawX = logoAreaX;
         const drawY = y0 + (h - drawH) / 2;
 
@@ -82,33 +94,32 @@ export async function editPdf(originalBytes, options) {
         logoRightEdge = drawX + drawW;
     }
 
-    // 3. テキスト挿入（ロゴの実際の右端から gap 分だけ空けて配置）
+    // 3. テキスト挿入
     if (showText && fontBytes) {
         const font = await pdfDoc.embedFont(fontBytes);
 
-        const textX = logoRightEdge + gap;
+        const textX = logoRightEdge + scaledGap;
         const textAreaW = x1 - margin - textX;
 
-        // テキストブロックを縦中央に配置
         const blockTopY = y0 + (h + totalTextH) / 2;
 
         // 会社名（1行目）
-        const nameY = blockTopY - nameFontSize;
+        const nameY = blockTopY - namefs;
         page.drawText(lines[0], {
             x: textX, y: nameY,
-            size: nameFontSize, font, color: nameColor,
+            size: namefs, font, color: nameColor,
             maxWidth: textAreaW,
         });
 
-        // 残りの行（住所・TEL・MAIL）
-        const restStartY = nameY - nameLineHeight + nameFontSize - fontSize;
+        // 残りの行
+        const restStartY = nameY - nameLh + namefs - fs;
         for (let i = 1; i < lines.length; i++) {
-            const lineY = restStartY - (i - 1) * lineHeight;
+            const lineY = restStartY - (i - 1) * lh;
             if (lineY < y0 + margin) break;
 
             page.drawText(lines[i], {
                 x: textX, y: lineY,
-                size: fontSize, font, color: rgb(0, 0, 0),
+                size: fs, font, color: rgb(0, 0, 0),
                 maxWidth: textAreaW,
             });
         }
