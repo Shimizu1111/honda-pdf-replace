@@ -23,7 +23,6 @@ let touchMode = "scroll";
 const isTouchDevice = window.matchMedia("(max-width: 600px)").matches || "ontouchstart" in window;
 
 const COMPANY_INFO = {
-    name: "AR株式会社",
     address: "〒106-0032 東京都港区六本木6丁目1-20 7F",
     phone: "TEL: 03-6890-2022",
     email: "MAIL: m.asaka@asaka-real.com",

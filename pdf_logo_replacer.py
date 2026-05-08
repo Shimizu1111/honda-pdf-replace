@@ -385,10 +385,7 @@ class App(tk.Tk):
             messagebox.showwarning("警告", "ロゴまたは会社情報を入力してください")
             return
 
-        texts = []
-        if company_name:
-            texts.append(company_name)
-        texts.extend(lines)
+        texts = list(lines)
 
         pdf_rect = self._selection_to_pdf_rect()
 

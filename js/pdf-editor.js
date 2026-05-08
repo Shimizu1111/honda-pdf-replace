@@ -78,14 +78,14 @@ export async function editPdf(originalBytes, options) {
         const lineHeight = fontSize * 1.5;
 
         const lines = [
-            companyInfo.name,
             companyInfo.address,
             companyInfo.phone,
             companyInfo.email,
         ];
 
-        // テキストエリアの上端から描画（pdf-lib の y は bottom-left）
-        const textTopY = y1 - margin - fontSize;
+        // テキストをロゴと縦中央揃えで描画
+        const totalTextH = lines.length * lineHeight - (lineHeight - fontSize);
+        const textTopY = y0 + (h + totalTextH) / 2 - fontSize;
 
         for (let i = 0; i < lines.length; i++) {
             const lineY = textTopY - i * lineHeight;
