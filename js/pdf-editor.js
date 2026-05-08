@@ -78,6 +78,7 @@ export async function editPdf(originalBytes, options) {
         const lineHeight = fontSize * 1.5;
 
         const lines = [
+            companyInfo.name,
             companyInfo.address,
             companyInfo.phone,
             companyInfo.email,
